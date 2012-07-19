@@ -1,0 +1,12 @@
+{application, lager_amqp_backend, [
+  {description, "Lager Airbrake Logging Backend"},
+    {vsn, "0.0.1"},
+    {registered, []},
+    {applications, [
+      kernel,
+      stdlib,
+      %% TODO: add erlbrake as app
+      lager
+     ]},
+    {env, []}
+  ]}.
