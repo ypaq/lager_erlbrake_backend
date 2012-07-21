@@ -1,5 +1,7 @@
 # Lager Backend for Airbrake
 
+*Disclamer: this is work in progress*
+
 This is a [Lager][lager] backend for the [Airbrake][airbrake] error notification service. 
 
 
@@ -15,10 +17,12 @@ Include `lager_erlbrake_backend` in the `lager` configuration of your project:
                                                    {api_key, "AIRBRAKE_API_KEY"}
                                                  ]} ] ]}
 
+The backend will send log messages with log level `error` or more critical to Airbrake.
+
 
 ### Build
 
-Build with: 
+You can build `lager_erlbrake_backend` on its own with: 
 
     ./rebar get-deps
     ./rebar compile
