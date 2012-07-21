@@ -2,10 +2,13 @@
 
 *Disclamer: this is work in progress*
 
-This is a [Lager][lager] backend for the [Airbrake][airbrake] error notification service. 
+This is a [Lager][lager] backend for the error notification service [Airbrake][airbrake]. 
+The backend mediates between Lager and [erlbrake][erlbrake]. 
 
 
 ## Usage
+
+You need an [Airbrake][airbrake] account.
 
 Add `lager_erlbrake_backend` to the dependencies in your `rebar.config`:
 

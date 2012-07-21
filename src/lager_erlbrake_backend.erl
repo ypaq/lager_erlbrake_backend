@@ -1,14 +1,11 @@
-%% @doc Airbrake lager backend
+%% @doc Airbrake lager backend.
 %%      
-%%      Notifies Airbrake of error (or more critical) log messages from lager.
+%% Notifies Airbrake of error (or more critical) log messages from lager.
 %%
-%%      More info on Airbrake see: http://airbrake.io/
-%%      More info on Lager see: https://github.com/basho/lager/
-%%
-%%      Created: Jul 17 2012
+%% More info on Lager see: https://github.com/basho/lager/
+%% More info on Airbrake see: http://airbrake.io/
 %%
 -module(lager_erlbrake_backend).
--author('Tilman Holschuh <tilman.holschuh@gmail.com>').
 
 -behaviour(gen_event).
 
@@ -26,9 +23,10 @@
 -record(state, {}).
 
 %% @private
--spec init({}) -> {ok, #state{}}.
+-spec init([{atom(), string()}]) -> {ok, #state{}}.
 init({}) ->
-  %% TODO: make sure erlbrake is running
+  application:start(erlbrake, permanent),
+
   {ok, #state{}}.
 
 %% @private
@@ -36,17 +34,10 @@ handle_call(_Request, State) ->
   {ok, State}.
 
 %% @private
-handle_event(Log = {log, Dest, Level, {Date, Time}, Message}, State) 
-    when Level > ?ERROR -> 
-  case lists:member(lager_erlbrake_backend, Dest) of
-    true -> notify_airbrake(Log);
-    false -> {ok, State}
-  end;
-handle_event(Log = {log, Level, {Date, Time}, Message}, State) 
-    when Level > ?ERROR -> 
-  notify_airbrake(Log),
-  {ok, State};
-
+handle_event(#lager_log_message{severity_as_int=L} = Log, #state{} = State) 
+    when L <= ?ERROR ->
+  %% notify every error (or more critical) log messages for now
+  notify_airbrake(Log);
 handle_event(_Event, State) ->
   {ok, State}.
 
@@ -62,11 +53,18 @@ code_change(_OldVsn, State, _Extra) ->
 terminate(_Reason, _State) ->
   ok.
 
-notify_airbrake({log, _, Level, {Date, Time}, Message}) ->
-  notify_airbrake({log, Level, {Date, Time}, Message});
-notify_airbrake({log,  Level, {Date, Time}, Message}) ->
-  %% TODO: Lots of information contained in Message but requires string parsing.
-  %%       Lager should provide structured way to access log data.
+notify_airbrake(#lager_log_message{message = Message,
+                                   timestamp = Timestamp,
+                                   metadata = Metadata,
+                                   severity_as_int = L} = Log) ->
+  Severity = ?NUM2LEVEL(L),
+  Date = get_date,
+  Time = get_time,
+  Pid = pid, 
+  Line = line, 
+  Module = module, 
+  Function = function, 
+  Node = node
   airbrake:notify(ignored, Level, Message, unknown, 0).
 
 
