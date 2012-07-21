@@ -1,10 +1,9 @@
-Lager Backend for Airbrake
-==========================
+# Lager Backend for Airbrake
 
 This is a [Lager][lager] backend for the [Airbrake][airbrake] error notification service. 
 
-How to use?
------------
+
+## Usage
 
 Add `lager_erlbrake_backend` to the dependencies in your `rebar.config`:
 
@@ -12,11 +11,12 @@ Add `lager_erlbrake_backend` to the dependencies in your `rebar.config`:
 
 Include `lager_erlbrake_backend` in the `lager` configuration of your project:
 
-    {lager, [handlers, [{lager_erlbrake_backend, []}] ] }
+    {lager, [handlers, [{lager_erlbrake_backend, [ {environment, "production"},
+                                                   {api_key, "AIRBRAKE_API_KEY"}
+                                                 ]} ] ]}
 
 
-Build
------
+### Build
 
 Build with: 
 
@@ -24,12 +24,11 @@ Build with:
     ./rebar compile
 
 
-Dependencies
-------------
+### Dependencies
 
-Dependencies are listed here for completeness but are managed with `rebar`:
+Dependencies are listed here for completeness, but are managed with `rebar`:
 
-* [lager][lager] (lastest version after riak 1.2) 
+* [lager][lager] (version after riak 1.2) 
 * [erlbrake][erlbrake]
 
 
