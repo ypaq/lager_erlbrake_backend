@@ -1,4 +1,4 @@
-{application, lager_amqp_backend, [
+{application, lager_erlbrake_backend, [
   {description, "Lager Airbrake Logging Backend"},
     {vsn, "0.0.1"},
     {registered, []},

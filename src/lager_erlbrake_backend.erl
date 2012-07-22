@@ -20,13 +20,15 @@
         ]).
 
 -define(AIRBRAKE_LEVELS, [error, critical, alert, emergency]).
+
 -record(state, {}).
 
 %% @private
 -spec init([{atom(), string()}]) -> {ok, #state{}}.
-init({}) ->
-  application:start(erlbrake, permanent),
-
+init([{environment, Environment}, {api_key, ApiKey}]) ->
+  application:set_env(erlbrake, api_key, ApiKey),
+  application:set_env(erlbrake, environment, ApiKey),
+  ok = application:start(erlbrake),
   {ok, #state{}}.
 
 %% @private
@@ -34,10 +36,13 @@ handle_call(_Request, State) ->
   {ok, State}.
 
 %% @private
-handle_event(#lager_log_message{severity_as_int=L} = Log, #state{} = State) 
-    when L <= ?ERROR ->
+handle_event(#lager_log_message{severity_as_int=L} = Log, #state{} = State)  ->
   %% notify every error (or more critical) log messages for now
-  notify_airbrake(Log);
+  case lists:member(lager_util:num_to_level(L), ?AIRBRAKE_LEVELS) of
+    true  -> notify_airbrake(Log);
+    false -> ok
+  end,
+  {ok, State};
 handle_event(_Event, State) ->
   {ok, State}.
 
@@ -54,18 +59,28 @@ terminate(_Reason, _State) ->
   ok.
 
 notify_airbrake(#lager_log_message{message = Message,
-                                   timestamp = Timestamp,
+                                   timestamp = {Date, Time},
                                    metadata = Metadata,
                                    severity_as_int = L} = Log) ->
-  Severity = ?NUM2LEVEL(L),
-  Date = get_date,
-  Time = get_time,
-  Pid = pid, 
-  Line = line, 
-  Module = module, 
-  Function = function, 
-  Node = node
-  airbrake:notify(ignored, Level, Message, unknown, 0).
+  Severity = lager_util:num_to_level(L),
+  Pid = get_metadata(pid, Metadata),
+  Line = get_metadata(line, Metadata),
+  Module = get_metadata(module, Metadata),
+  %% TODO: improve erlbrake to handle these parameters
+  _Function = get_metadata(function, Metadata),
+  _Node = get_metadata(node, Metadata),
+  airbrake:notify(ignored, Severity, Message, Module, Line).
 
+
+get_metadata(Key, Metadata) ->
+  get_metadata(Key, Metadata, undefined).
+
+get_metadata(Key, Metadata, Default) ->
+  case lists:keyfind(Key, 1, Metadata) of
+    false ->
+      Default;
+    {Key, Value} ->
+      Value
+  end.
 
 
