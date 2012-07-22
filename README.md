@@ -1,14 +1,14 @@
 # Lager Backend for Airbrake
 
-*Disclamer: this is work in progress*
+*Disclamer: this is work in progress.*
 
-This is a [Lager][lager] backend for the error notification service [Airbrake][airbrake]. 
-The backend mediates between Lager and [erlbrake][erlbrake]. 
+This is a [lager][lager] backend for the error notification service [Airbrake][airbrake]. 
+The backend mediates between lager and [erlbrake][erlbrake]. 
 
 
 ## Usage
 
-You need an [Airbrake][airbrake] account.
+You need an [Airbrake][airbrake] account. Your application should be OTP conform and use `rebar`.
 
 Add `lager_erlbrake_backend` to the dependencies in your `rebar.config`:
 
@@ -16,9 +16,9 @@ Add `lager_erlbrake_backend` to the dependencies in your `rebar.config`:
 
 Include `lager_erlbrake_backend` in the `lager` configuration of your project:
 
-    {lager, [handlers, [{lager_erlbrake_backend, [ {environment, "production"},
-                                                   {api_key, "AIRBRAKE_API_KEY"}
-                                                 ]} ] ]}
+    {lager, [handlers, [{lager_erlbrake_backend, [ {environment, "development"},
+                                                   {api_key, "ENTER_API_KEY"}
+                                                 ]}]]}
 
 The backend will send log messages with log level `error` or more critical to Airbrake.
 
@@ -27,9 +27,7 @@ The backend will send log messages with log level `error` or more critical to Ai
 
 You can build `lager_erlbrake_backend` on its own with: 
 
-    ./rebar get-deps
-    ./rebar compile
-
+    ./rebar get-deps compile
 
 ### Dependencies
 
@@ -39,7 +37,7 @@ Dependencies are listed here for completeness, but are managed with `rebar`:
 * [erlbrake][erlbrake]
 
 
-[lager]: <http://github.com/basho/lager> "Lager"
-[erlbrake]: <http://github.com/kenpratt/erlbrake> "Erlbrake"
+[lager]: <http://github.com/basho/lager> "lager"
+[erlbrake]: <http://github.com/kenpratt/erlbrake> "erlbrake"
 [airbrake]: <http://airbrake.io> "Airbrake"
 
