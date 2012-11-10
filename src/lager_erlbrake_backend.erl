@@ -7,10 +7,10 @@
 %%
 -module(lager_erlbrake_backend).
 
--behaviour(gen_event).
 
 -include_lib("lager/include/lager.hrl").
 
+-behaviour(gen_event).
 -export([init/1, 
          handle_call/2,
          handle_event/2,
@@ -19,28 +19,32 @@
          code_change/3
         ]).
 
--define(AIRBRAKE_LEVELS, [error, critical, alert, emergency]).
-
--record(state, {}).
+-record(state, {notify_level}).
 
 %% @private
--spec init([{atom(), string()}]) -> {ok, #state{}}.
-init([{environment, Environment}, {api_key, ApiKey}]) ->
+-spec init([{atom(), term()}]) -> {ok, #state{}}.
+init(Args) when is_list(Args) ->
+  Environment = proplists:get_value(environment, Args),
+  ApiKey = proplists:get_value(api_key, Args),
+  NotifyLevel = proplists:get_value(notify_level, Args, error),
   application:set_env(erlbrake, api_key, ApiKey),
-  application:set_env(erlbrake, environment, ApiKey),
-  ok = application:start(erlbrake),
-  {ok, #state{}}.
+  application:set_env(erlbrake, environment, Environment),
+  case application:start(erlbrake, permanent) of
+    {error, {already_started, erlbrake}} -> ok;
+    ok -> ok
+  end,
+  {ok, #state{notify_level = lager_util:level_to_num(NotifyLevel)}}.
 
 %% @private
 handle_call(_Request, State) ->
   {ok, State}.
 
 %% @private
-handle_event(#lager_log_message{severity_as_int=L} = Log, #state{} = State)  ->
-  %% notify every error (or more critical) log messages for now
-  case lists:member(lager_util:num_to_level(L), ?AIRBRAKE_LEVELS) of
-    true  -> notify_airbrake(Log);
-    false -> ok
+handle_event(LogMsg, #state{notify_level = NotifyLevel} = State)  ->
+  case lager_msg:severity_as_int(LogMsg) of
+    Severity when Severity =< NotifyLevel, Severity >= 0 -> 
+      notify_airbrake(LogMsg);
+    _ -> ok
   end,
   {ok, State};
 handle_event(_Event, State) ->
@@ -58,29 +62,33 @@ code_change(_OldVsn, State, _Extra) ->
 terminate(_Reason, _State) ->
   ok.
 
-notify_airbrake(#lager_log_message{message = Message,
-                                   timestamp = {Date, Time},
-                                   metadata = Metadata,
-                                   severity_as_int = L} = Log) ->
-  Severity = lager_util:num_to_level(L),
-  Pid = get_metadata(pid, Metadata),
-  Line = get_metadata(line, Metadata),
-  Module = get_metadata(module, Metadata),
-  %% TODO: improve erlbrake to handle these parameters
-  _Function = get_metadata(function, Metadata),
-  _Node = get_metadata(node, Metadata),
-  airbrake:notify(ignored, Severity, Message, Module, Line).
+notify_airbrake(LogMsg) ->
+  Severity = lager_msg:severity(LogMsg),
+  Message = lager_msg:message(LogMsg),
+  Line = get_metadata(line, LogMsg),
+  Module = get_metadata(module, LogMsg),
+  Function = get_metadata(function, LogMsg),
+  Node = get_metadata(node, LogMsg),
+  Pid = get_metadata(pid, LogMsg),
+  Application = application:get_application(Pid),
+  airbrake:notify([{reason, Severity}, 
+                   {message, Message},
+                   {module, Module},
+                   {function, Function},
+                   {line, Line},
+                   {node, Node},
+                   {pid, Pid},
+                   {application, Application}
+                  ]).
 
-
-get_metadata(Key, Metadata) ->
+get_metadata(Key, LogMsg) ->
+  Metadata = lager_msg:metadata(LogMsg),
   get_metadata(Key, Metadata, undefined).
 
 get_metadata(Key, Metadata, Default) ->
   case lists:keyfind(Key, 1, Metadata) of
-    false ->
-      Default;
-    {Key, Value} ->
-      Value
+    false -> Default;
+    {Key, Value} -> Value
   end.
 
 

@@ -17,7 +17,8 @@ Add `lager_erlbrake_backend` to the dependencies in your `rebar.config`:
 Include `lager_erlbrake_backend` in the `lager` configuration of your project:
 
     {lager, [handlers, [{lager_erlbrake_backend, [ {environment, "development"},
-                                                   {api_key, "ENTER_API_KEY"}
+                                                   {api_key, "ENTER_API_KEY"},
+                                                   {notify_level, error}  %% optional 
                                                  ]}]]}
 
 The backend will send log messages with log level `error` or more critical to Airbrake.
