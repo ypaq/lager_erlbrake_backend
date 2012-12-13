@@ -7,9 +7,6 @@
 %%
 -module(lager_erlbrake_backend).
 
-
--include_lib("lager/include/lager.hrl").
-
 -behaviour(gen_event).
 -export([init/1, 
          handle_call/2,
@@ -27,8 +24,10 @@ init(Args) when is_list(Args) ->
   Environment = proplists:get_value(environment, Args),
   ApiKey = proplists:get_value(api_key, Args),
   NotifyLevel = proplists:get_value(notify_level, Args, error),
+  io:format("~p, ~p, ~p~n", [Environment, ApiKey, NotifyLevel]),
   application:set_env(erlbrake, api_key, ApiKey),
   application:set_env(erlbrake, environment, Environment),
+  application:set_env(erlbrake, error_logger, false), % not needed with lager
   case application:start(erlbrake, permanent) of
     {error, {already_started, erlbrake}} -> ok;
     ok -> ok
@@ -36,14 +35,17 @@ init(Args) when is_list(Args) ->
   {ok, #state{notify_level = lager_util:level_to_num(NotifyLevel)}}.
 
 %% @private
+handle_call(get_loglevel, #state{notify_level=Level} = State) ->
+  {ok, Level, State};
+handle_call({set_loglevel, Level}, State) ->
+  {ok, ok, State#state{notify_level=lager_util:level_to_num(Level)}};
 handle_call(_Request, State) ->
   {ok, State}.
 
 %% @private
-handle_event(LogMsg, #state{notify_level = NotifyLevel} = State)  ->
-  case lager_msg:severity_as_int(LogMsg) of
-    Severity when Severity =< NotifyLevel, Severity >= 0 -> 
-      notify_airbrake(LogMsg);
+handle_event({log, LogMsg}, #state{notify_level = NotifyLevel} = State)  ->
+  case lager_util:is_loggable(LogMsg, NotifyLevel, airbrake) of
+    true -> notify_airbrake(LogMsg);
     _ -> ok
   end,
   {ok, State};
@@ -62,15 +64,18 @@ code_change(_OldVsn, State, _Extra) ->
 terminate(_Reason, _State) ->
   ok.
 
+%% local functions
+
 notify_airbrake(LogMsg) ->
   Severity = lager_msg:severity(LogMsg),
   Message = lager_msg:message(LogMsg),
-  Line = get_metadata(line, LogMsg),
-  Module = get_metadata(module, LogMsg),
-  Function = get_metadata(function, LogMsg),
-  Node = get_metadata(node, LogMsg),
-  Pid = get_metadata(pid, LogMsg),
-  Application = application:get_application(Pid),
+  Metadata = lager_msg:metadata(LogMsg),
+  Line = proplists:get_value(line, Metadata),
+  Module = proplists:get_value(module, Metadata),
+  Function = proplists:get_value(function, Metadata),
+  Pid = proplists:get_value(pid, Metadata),
+  Application = get_application(Pid, Module),
+  Node = proplists:get_value(node, Metadata),
   airbrake:notify([{reason, Severity}, 
                    {message, Message},
                    {module, Module},
@@ -81,14 +86,9 @@ notify_airbrake(LogMsg) ->
                    {application, Application}
                   ]).
 
-get_metadata(Key, LogMsg) ->
-  Metadata = lager_msg:metadata(LogMsg),
-  get_metadata(Key, Metadata, undefined).
-
-get_metadata(Key, Metadata, Default) ->
-  case lists:keyfind(Key, 1, Metadata) of
-    false -> Default;
-    {Key, Value} -> Value
+get_application(Pid, Module) ->
+  case application:get_application(Pid) of
+    undefined -> application:get_application(Module);
+    App -> App
   end.
-
 
