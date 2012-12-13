@@ -1,6 +1,5 @@
 # Lager Backend for Airbrake
 
-*Disclaimer: this is work in progress.*
 
 This is a [lager][lager] backend for the error notification service [Airbrake][airbrake]. 
 The backend mediates between lager and [erlbrake][erlbrake]. 
