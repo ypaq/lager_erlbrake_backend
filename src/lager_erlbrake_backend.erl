@@ -73,8 +73,8 @@ notify_airbrake(LogMsg) ->
   Module = proplists:get_value(module, Metadata),
   Function = proplists:get_value(function, Metadata),
   Pid = proplists:get_value(pid, Metadata),
-  Application = get_application(Pid, Module),
   Node = proplists:get_value(node, Metadata),
+  Application = get_application(Pid, Module),
   airbrake:notify([{reason, Severity}, 
                    {message, Message},
                    {module, Module},
@@ -87,7 +87,11 @@ notify_airbrake(LogMsg) ->
 
 get_application(Pid, Module) ->
   case application:get_application(Pid) of
-    undefined -> application:get_application(Module);
-    App -> App
+    undefined -> 
+      case application:get_application(Module) of
+        {ok, App} -> App;
+        _ -> undefined
+      end;
+    {ok, App} -> App
   end.
 
