@@ -85,7 +85,7 @@ notify_airbrake(LogMsg) ->
                    {application, Application}
                   ]).
 
-get_application(Pid, Module) ->
+get_application(Pid, Module) when is_pid(Pid), is_atom(Module) ->
   case application:get_application(Pid) of
     undefined -> 
       case application:get_application(Module) of
@@ -93,5 +93,11 @@ get_application(Pid, Module) ->
         _ -> undefined
       end;
     {ok, App} -> App
+  end;
+get_application(Pid, Module) when is_list(Pid) ->
+  try 
+    get_application(list_to_pid(Pid), Module)
+  catch _:_ ->
+      undefined
   end.
 
