@@ -24,6 +24,7 @@ init(Args) when is_list(Args) ->
   Environment = proplists:get_value(environment, Args),
   ApiKey = proplists:get_value(api_key, Args),
   NotifyLevel = proplists:get_value(notify_level, Args, error),
+  application:load(erlbrake),
   application:set_env(erlbrake, api_key, ApiKey),
   application:set_env(erlbrake, environment, Environment),
   application:set_env(erlbrake, error_logger, false), % not needed with lager
