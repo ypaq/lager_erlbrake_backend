@@ -17,10 +17,15 @@ Include `lager_erlbrake_backend` in the `lager` configuration of your project:
 
     {lager, [handlers, [{lager_erlbrake_backend, [ {environment, "development"},
                                                    {api_key, "ENTER_API_KEY"},
+                                                   {notification_api, "http://airbrake.io/notifier_api/v2/notices"}, %% optional
                                                    {notify_level, error}  %% optional 
                                                  ]}]]}
 
 The backend will send log messages with log level `error` or more critical to Airbrake.
+
+Optional parameter notification_api is used to support an alternative Airbrake compliant
+endpoint. For example, using "https://api.rollbar.com/notifier_api/v2/notices/" you can use
+the compliant endpoint from Rollbar service.
 
 
 ### Build
