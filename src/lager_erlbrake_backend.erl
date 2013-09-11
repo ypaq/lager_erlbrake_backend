@@ -30,10 +30,7 @@ init(Args) when is_list(Args) ->
   application:set_env(erlbrake, api_key, ApiKey),
   application:set_env(erlbrake, environment, Environment),
   application:set_env(erlbrake, error_logger, false), % not needed with lager
-  case application:start(erlbrake, permanent) of
-    {error, {already_started, erlbrake}} -> ok;
-    ok -> ok
-  end,
+  start_deps(lager_erlbrake_backend),
   {ok, #state{notify_level = lager_util:level_to_num(NotifyLevel)}}.
 
 %% @private
@@ -67,6 +64,18 @@ terminate(_Reason, _State) ->
   ok.
 
 %% local functions
+
+start_deps(App) ->
+  start_dep(App, application:start(App, permanent)). 
+
+start_dep(_, ok) -> ok;
+start_dep(_App, {error, {already_started, _App}}) -> ok;
+start_dep(App, {error, {not_started, Dep}}) ->
+  ok = start_deps(Dep),
+  start_deps(App);
+start_dep(App, {error, Reason}) ->
+  erlang:error({app_start_failed, App, Reason}).
+
 
 notify_airbrake(LogMsg) ->
   Severity = lager_msg:severity(LogMsg),

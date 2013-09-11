@@ -6,8 +6,7 @@
       kernel,
       stdlib,
       xmerl,
-      erlbrake,
-      lager
+      erlbrake
      ]},
     {env, []}
   ]}.
